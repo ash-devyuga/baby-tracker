@@ -165,6 +165,26 @@ class ActivityProvider extends ChangeNotifier {
     await loadActivities();
   }
 
+  // Sync all local activities TO cloud
+  Future<int> syncAllToCloud() async {
+    if (!_pb.isAuthenticated) return 0;
+
+    // Get all activities from local database (no date filter)
+    final allLocalActivities = await _db.getActivities();
+    int syncedCount = 0;
+
+    for (final activity in allLocalActivities) {
+      try {
+        await _pb.syncActivityToCloud(activity);
+        syncedCount++;
+      } catch (e) {
+        print('Error syncing activity ${activity.id}: $e');
+      }
+    }
+
+    return syncedCount;
+  }
+
   // Initialize real-time sync
   void initializeRealtimeSync() {
     if (!_pb.isAuthenticated) return;

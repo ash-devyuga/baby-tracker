@@ -158,6 +158,73 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _syncAllToCloud() async {
+    if (!PocketBaseService.instance.isAuthenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You must be logged in to sync'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sync All to Cloud'),
+        content: const Text(
+          'This will upload ALL activities from your local database to PocketBase.\n\n'
+          'This includes:\n'
+          '• Historical imported data\n'
+          '• All manually added activities\n\n'
+          'Continue?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Sync'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final count = await context.read<ActivityProvider>().syncAllToCloud();
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ Successfully synced $count activities to cloud!'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error syncing: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _logout() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -354,6 +421,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     )
                   : const Icon(Icons.arrow_forward_ios, size: 16),
               onTap: _isLoading ? null : _importHistoricalData,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Card(
+            child: ListTile(
+              leading: Icon(Icons.cloud_upload, color: Colors.green[300]),
+              title: const Text('Sync All to Cloud'),
+              subtitle: const Text('Upload all local activities to PocketBase'),
+              trailing: _isLoading
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: _isLoading ? null : _syncAllToCloud,
             ),
           ),
           const SizedBox(height: 16),
