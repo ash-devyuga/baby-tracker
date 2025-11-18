@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../services/pocketbase_service.dart';
+import '../services/activity_provider.dart';
+import '../utils/import_historical_data.dart';
 import 'auth_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -93,6 +96,65 @@ class _SettingsScreenState extends State<SettingsScreen> {
           backgroundColor: Colors.green,
         ),
       );
+    }
+  }
+
+  Future<void> _importHistoricalData() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Import Historical Data'),
+        content: const Text(
+          'This will import your baby tracking data from Nov 10-17, 2025.\n\n'
+          '• ~136 activities (feeds & sleep)\n'
+          '• This should only be done once\n\n'
+          'Continue?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Import'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      await importHistoricalData();
+
+      if (mounted) {
+        // Reload activities
+        await context.read<ActivityProvider>().loadActivities();
+
+        setState(() => _isLoading = false);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Historical data imported successfully!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error importing data: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -276,6 +338,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ? Colors.green
                     : Colors.red,
               ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Card(
+            child: ListTile(
+              leading: Icon(Icons.file_download, color: Colors.blue[300]),
+              title: const Text('Import Historical Data'),
+              subtitle: const Text('Nov 10-17, 2025 (136 activities)'),
+              trailing: _isLoading
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: _isLoading ? null : _importHistoricalData,
             ),
           ),
           const SizedBox(height: 16),
