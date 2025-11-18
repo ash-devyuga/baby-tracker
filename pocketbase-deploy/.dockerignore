@@ -1,0 +1,8 @@
+*.md
+*.sh
+*.bak
+*.backup
+fly.toml
+pocketbase_url.txt
+.git
+.gitignore

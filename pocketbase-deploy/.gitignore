@@ -1,0 +1,13 @@
+# Ignore generated files
+pocketbase_url.txt
+*.bak
+*.backup
+
+# Ignore fly.io generated files
+.fly/
+
+# Ignore local PocketBase data (if testing locally)
+pb_data/
+
+# Ignore backup files
+fly.toml.backup

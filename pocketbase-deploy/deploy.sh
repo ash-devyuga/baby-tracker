@@ -1,0 +1,181 @@
+#!/bin/bash
+
+# Baby Tracker PocketBase Deployment Script
+# This script automates the deployment of PocketBase to Fly.io
+
+set -e
+
+echo "🚀 Baby Tracker PocketBase Deployment"
+echo "======================================"
+echo ""
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Check if fly CLI is installed
+if ! command -v fly &> /dev/null; then
+    echo -e "${RED}❌ Fly CLI not found!${NC}"
+    echo ""
+    echo "Installing Fly CLI..."
+
+    if [[ "$OSTYPE" == "darwin"* ]] || [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        curl -L https://fly.io/install.sh | sh
+        export FLYCTL_INSTALL="/home/$USER/.fly"
+        export PATH="$FLYCTL_INSTALL/bin:$PATH"
+    else
+        echo -e "${RED}Please install Fly CLI manually:${NC}"
+        echo "https://fly.io/docs/hands-on/install-flyctl/"
+        exit 1
+    fi
+fi
+
+echo -e "${GREEN}✓ Fly CLI is installed${NC}"
+echo ""
+
+# Check if user is logged in
+if ! fly auth whoami &> /dev/null; then
+    echo -e "${YELLOW}⚠ You need to login to Fly.io${NC}"
+    echo ""
+    echo "Choose an option:"
+    echo "1. Sign up for a new account"
+    echo "2. Login to existing account"
+    read -p "Enter choice (1 or 2): " choice
+
+    if [ "$choice" == "1" ]; then
+        fly auth signup
+    else
+        fly auth login
+    fi
+fi
+
+echo -e "${GREEN}✓ Logged in to Fly.io${NC}"
+echo ""
+
+# Generate unique app name
+USERNAME=$(whoami)
+TIMESTAMP=$(date +%s)
+APP_NAME="baby-tracker-pb-${USERNAME}-${TIMESTAMP: -4}"
+
+echo -e "${BLUE}📝 Configuration:${NC}"
+echo "   App Name: $APP_NAME"
+echo "   Region: iad (US East)"
+echo ""
+
+# Update fly.toml with generated app name
+sed -i.bak "s/app = \"baby-tracker-pb\"/app = \"$APP_NAME\"/" fly.toml
+
+echo -e "${YELLOW}⏳ Creating persistent volume...${NC}"
+if fly volumes create pb_data --size 1 --region iad --yes; then
+    echo -e "${GREEN}✓ Volume created successfully${NC}"
+else
+    echo -e "${YELLOW}⚠ Volume might already exist, continuing...${NC}"
+fi
+echo ""
+
+echo -e "${YELLOW}⏳ Deploying PocketBase to Fly.io...${NC}"
+echo "   This may take 2-3 minutes..."
+echo ""
+
+if fly deploy --now; then
+    echo ""
+    echo -e "${GREEN}✅ Deployment successful!${NC}"
+    echo ""
+
+    # Get the app URL
+    APP_URL="https://${APP_NAME}.fly.dev"
+
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}🎉 Your PocketBase is now live!${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo -e "${BLUE}📍 PocketBase URL:${NC}"
+    echo "   $APP_URL"
+    echo ""
+    echo -e "${BLUE}🔧 Admin Panel:${NC}"
+    echo "   ${APP_URL}/_/"
+    echo ""
+    echo -e "${BLUE}📱 Next Steps:${NC}"
+    echo "   1. Open admin panel and create your admin account"
+    echo "   2. Collections are automatically created!"
+    echo "   3. Update your Flutter app:"
+    echo ""
+    echo -e "${YELLOW}      Open: lib/services/pocketbase_service.dart${NC}"
+    echo -e "${YELLOW}      Change: static const String pocketBaseUrl = '$APP_URL';${NC}"
+    echo ""
+    echo "   4. Run: flutter pub get && flutter run"
+    echo ""
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+
+    # Save URL to a file for easy reference
+    echo "$APP_URL" > pocketbase_url.txt
+    echo -e "${GREEN}✓ URL saved to pocketbase_url.txt${NC}"
+    echo ""
+
+    # Ask if user wants to open admin panel
+    read -p "Open admin panel in browser? (y/n): " open_browser
+    if [ "$open_browser" == "y" ]; then
+        if command -v open &> /dev/null; then
+            open "${APP_URL}/_/"
+        elif command -v xdg-open &> /dev/null; then
+            xdg-open "${APP_URL}/_/"
+        else
+            echo "Please open: ${APP_URL}/_/"
+        fi
+    fi
+
+    # Ask if user wants to update the Flutter app automatically
+    read -p "Update Flutter app with PocketBase URL automatically? (y/n): " update_app
+    if [ "$update_app" == "y" ]; then
+        POCKETBASE_SERVICE="../lib/services/pocketbase_service.dart"
+        if [ -f "$POCKETBASE_SERVICE" ]; then
+            # Create backup
+            cp "$POCKETBASE_SERVICE" "${POCKETBASE_SERVICE}.bak"
+
+            # Update the URL
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+                sed -i '' "s|static const String pocketBaseUrl = .*|static const String pocketBaseUrl = '$APP_URL';|" "$POCKETBASE_SERVICE"
+            else
+                sed -i "s|static const String pocketBaseUrl = .*|static const String pocketBaseUrl = '$APP_URL';|" "$POCKETBASE_SERVICE"
+            fi
+
+            echo -e "${GREEN}✓ Flutter app updated with PocketBase URL${NC}"
+            echo -e "${YELLOW}  (Backup saved to: ${POCKETBASE_SERVICE}.bak)${NC}"
+            echo ""
+            echo "Run these commands to use the updated app:"
+            echo "  cd .."
+            echo "  flutter pub get"
+            echo "  flutter run"
+        else
+            echo -e "${RED}❌ Could not find pocketbase_service.dart${NC}"
+        fi
+    fi
+
+else
+    echo ""
+    echo -e "${RED}❌ Deployment failed${NC}"
+    echo "Please check the error messages above and try again."
+    echo ""
+    echo "Common issues:"
+    echo "  - App name already taken (change app name in fly.toml)"
+    echo "  - Network issues (check your internet connection)"
+    echo "  - No credit card on file (Fly.io requires one, but won't charge)"
+    exit 1
+fi
+
+# Restore backup
+mv fly.toml.bak fly.toml.backup 2>/dev/null || true
+
+echo ""
+echo -e "${BLUE}📊 Useful Commands:${NC}"
+echo "  fly status              - Check app status"
+echo "  fly logs                - View app logs"
+echo "  fly dashboard           - Open Fly.io dashboard"
+echo "  fly ssh console         - SSH into your app"
+echo ""
+echo -e "${GREEN}Happy baby tracking! 👶❤️${NC}"
+echo ""
