@@ -91,8 +91,16 @@ echo ""
 # Update fly.toml with generated app name
 sed -i.bak "s/app = \"baby-tracker-pb\"/app = \"$APP_NAME\"/" fly.toml
 
+echo -e "${YELLOW}⏳ Creating Fly.io app...${NC}"
+if $FLY_CMD apps create "$APP_NAME" --org personal 2>/dev/null; then
+    echo -e "${GREEN}✓ App created successfully${NC}"
+else
+    echo -e "${YELLOW}⚠ App might already exist, continuing...${NC}"
+fi
+echo ""
+
 echo -e "${YELLOW}⏳ Creating persistent volume...${NC}"
-if $FLY_CMD volumes create pb_data --size 1 --region iad --yes; then
+if $FLY_CMD volumes create pb_data --size 1 --region iad --app "$APP_NAME" --yes 2>/dev/null; then
     echo -e "${GREEN}✓ Volume created successfully${NC}"
 else
     echo -e "${YELLOW}⚠ Volume might already exist, continuing...${NC}"
@@ -103,7 +111,7 @@ echo -e "${YELLOW}⏳ Deploying PocketBase to Fly.io...${NC}"
 echo "   This may take 2-3 minutes..."
 echo ""
 
-if $FLY_CMD deploy --now; then
+if $FLY_CMD deploy --app "$APP_NAME" --now; then
     echo ""
     echo -e "${GREEN}✅ Deployment successful!${NC}"
     echo ""
