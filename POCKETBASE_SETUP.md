@@ -2,6 +2,26 @@
 
 This guide will help you set up PocketBase as a free, self-hosted backend for syncing baby tracking data between both parents.
 
+## 🚀 Quick Deploy (Recommended!)
+
+**Want to deploy in 3 minutes? We've got you covered!**
+
+```bash
+cd pocketbase-deploy
+./deploy.sh
+```
+
+The automated script will handle everything:
+- ✅ Install Fly CLI (if needed)
+- ✅ Create your free cloud deployment
+- ✅ Configure collections automatically
+- ✅ Update your Flutter app
+- ✅ Open admin panel in browser
+
+**See [pocketbase-deploy/README.md](pocketbase-deploy/README.md) for details.**
+
+---
+
 ## What is PocketBase?
 
 PocketBase is a free, open-source backend that provides:
