@@ -103,6 +103,7 @@ class ActivityProvider extends ChangeNotifier {
         type: activity.type,
         timestamp: activity.timestamp,
         durationMinutes: activity.durationMinutes,
+        sleepEndTime: activity.sleepEndTime,
         notes: activity.notes,
         feedType: activity.feedType,
         feedAmount: activity.feedAmount,
