@@ -178,6 +178,18 @@ migrate((db) => {
         }
       },
       {
+        id: "sleep_end_time_field",
+        name: "sleep_end_time",
+        type: "date",
+        required: false,
+        presentable: false,
+        unique: false,
+        options: {
+          min: "",
+          max: ""
+        }
+      },
+      {
         id: "local_id_field",
         name: "local_id",
         type: "text",
