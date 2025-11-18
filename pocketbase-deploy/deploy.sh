@@ -16,28 +16,51 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Detect fly command location
+FLY_CMD="fly"
+
 # Check if fly CLI is installed
 if ! command -v fly &> /dev/null; then
-    echo -e "${RED}❌ Fly CLI not found!${NC}"
-    echo ""
-    echo "Installing Fly CLI..."
-
-    if [[ "$OSTYPE" == "darwin"* ]] || [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        curl -L https://fly.io/install.sh | sh
-        export FLYCTL_INSTALL="/home/$USER/.fly"
-        export PATH="$FLYCTL_INSTALL/bin:$PATH"
+    # Check common installation locations
+    if [ -f "$HOME/.fly/bin/flyctl" ]; then
+        FLY_CMD="$HOME/.fly/bin/flyctl"
+    elif [ -f "$HOME/.fly/bin/fly" ]; then
+        FLY_CMD="$HOME/.fly/bin/fly"
     else
-        echo -e "${RED}Please install Fly CLI manually:${NC}"
-        echo "https://fly.io/docs/hands-on/install-flyctl/"
-        exit 1
+        echo -e "${RED}❌ Fly CLI not found!${NC}"
+        echo ""
+        echo "Installing Fly CLI..."
+
+        if [[ "$OSTYPE" == "darwin"* ]] || [[ "$OSTYPE" == "linux-gnu"* ]]; then
+            curl -L https://fly.io/install.sh | sh
+
+            # Set fly command to the newly installed location
+            if [ -f "$HOME/.fly/bin/flyctl" ]; then
+                FLY_CMD="$HOME/.fly/bin/flyctl"
+            elif [ -f "$HOME/.fly/bin/fly" ]; then
+                FLY_CMD="$HOME/.fly/bin/fly"
+            fi
+
+            echo ""
+            echo -e "${GREEN}✓ Fly CLI installed successfully${NC}"
+            echo -e "${YELLOW}Note: You may need to add ~/.fly/bin to your PATH${NC}"
+            echo ""
+        else
+            echo -e "${RED}Please install Fly CLI manually:${NC}"
+            echo "https://fly.io/docs/hands-on/install-flyctl/"
+            exit 1
+        fi
     fi
+else
+    # fly is in PATH
+    FLY_CMD="fly"
 fi
 
-echo -e "${GREEN}✓ Fly CLI is installed${NC}"
+echo -e "${GREEN}✓ Fly CLI is available${NC}"
 echo ""
 
 # Check if user is logged in
-if ! fly auth whoami &> /dev/null; then
+if ! $FLY_CMD auth whoami &> /dev/null; then
     echo -e "${YELLOW}⚠ You need to login to Fly.io${NC}"
     echo ""
     echo "Choose an option:"
@@ -46,9 +69,9 @@ if ! fly auth whoami &> /dev/null; then
     read -p "Enter choice (1 or 2): " choice
 
     if [ "$choice" == "1" ]; then
-        fly auth signup
+        $FLY_CMD auth signup
     else
-        fly auth login
+        $FLY_CMD auth login
     fi
 fi
 
@@ -69,7 +92,7 @@ echo ""
 sed -i.bak "s/app = \"baby-tracker-pb\"/app = \"$APP_NAME\"/" fly.toml
 
 echo -e "${YELLOW}⏳ Creating persistent volume...${NC}"
-if fly volumes create pb_data --size 1 --region iad --yes; then
+if $FLY_CMD volumes create pb_data --size 1 --region iad --yes; then
     echo -e "${GREEN}✓ Volume created successfully${NC}"
 else
     echo -e "${YELLOW}⚠ Volume might already exist, continuing...${NC}"
@@ -80,7 +103,7 @@ echo -e "${YELLOW}⏳ Deploying PocketBase to Fly.io...${NC}"
 echo "   This may take 2-3 minutes..."
 echo ""
 
-if fly deploy --now; then
+if $FLY_CMD deploy --now; then
     echo ""
     echo -e "${GREEN}✅ Deployment successful!${NC}"
     echo ""
@@ -172,10 +195,10 @@ mv fly.toml.bak fly.toml.backup 2>/dev/null || true
 
 echo ""
 echo -e "${BLUE}📊 Useful Commands:${NC}"
-echo "  fly status              - Check app status"
-echo "  fly logs                - View app logs"
-echo "  fly dashboard           - Open Fly.io dashboard"
-echo "  fly ssh console         - SSH into your app"
+echo "  $FLY_CMD status              - Check app status"
+echo "  $FLY_CMD logs                - View app logs"
+echo "  $FLY_CMD dashboard           - Open Fly.io dashboard"
+echo "  $FLY_CMD ssh console         - SSH into your app"
 echo ""
 echo -e "${GREEN}Happy baby tracking! 👶❤️${NC}"
 echo ""
