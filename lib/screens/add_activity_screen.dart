@@ -20,6 +20,7 @@ class AddActivityScreen extends StatefulWidget {
 
 class _AddActivityScreenState extends State<AddActivityScreen> {
   late DateTime _selectedDateTime;
+  DateTime? _selectedEndDateTime;
   final _notesController = TextEditingController();
   final _durationController = TextEditingController();
   final _feedAmountController = TextEditingController();
@@ -31,6 +32,7 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
   void initState() {
     super.initState();
     _selectedDateTime = widget.activity?.timestamp ?? DateTime.now();
+    _selectedEndDateTime = widget.activity?.sleepEndTime;
     _notesController.text = widget.activity?.notes ?? '';
 
     if (widget.activity != null) {
@@ -119,6 +121,11 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
   }
 
   Widget _buildDateTimePicker() {
+    // For sleep, we don't show this - we show start/end time in type-specific fields
+    if (widget.activityType == ActivityType.sleep) {
+      return Container();
+    }
+
     return Card(
       child: ListTile(
         leading: const Icon(Icons.access_time),
@@ -156,19 +163,107 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
     );
   }
 
+  Future<void> _selectDateTime({required bool isStartTime}) async {
+    final currentDateTime = isStartTime ? _selectedDateTime : (_selectedEndDateTime ?? DateTime.now());
+
+    final date = await showDatePicker(
+      context: context,
+      initialDate: currentDateTime,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+    );
+
+    if (date != null && mounted) {
+      final time = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(currentDateTime),
+      );
+
+      if (time != null && mounted) {
+        setState(() {
+          final newDateTime = DateTime(
+            date.year,
+            date.month,
+            date.day,
+            time.hour,
+            time.minute,
+          );
+
+          if (isStartTime) {
+            _selectedDateTime = newDateTime;
+          } else {
+            _selectedEndDateTime = newDateTime;
+          }
+        });
+      }
+    }
+  }
+
+  String _formatDuration(int minutes) {
+    final hours = minutes ~/ 60;
+    final mins = minutes % 60;
+    if (hours > 0) {
+      return '${hours}h ${mins}m';
+    }
+    return '${mins}m';
+  }
+
   List<Widget> _buildTypeSpecificFields() {
     switch (widget.activityType) {
       case ActivityType.sleep:
         return [
-          TextField(
-            controller: _durationController,
-            decoration: const InputDecoration(
-              labelText: 'Duration (minutes)',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.timer),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.bedtime),
+              title: const Text('Start Time'),
+              subtitle: Text(DateFormat('MMM dd, yyyy - HH:mm').format(_selectedDateTime)),
+              trailing: const Icon(Icons.edit),
+              onTap: () => _selectDateTime(isStartTime: true),
             ),
-            keyboardType: TextInputType.number,
           ),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.wb_sunny),
+              title: const Text('End Time (optional)'),
+              subtitle: Text(
+                _selectedEndDateTime != null
+                    ? DateFormat('MMM dd, yyyy - HH:mm').format(_selectedEndDateTime!)
+                    : 'Not set - tap to set when baby wakes up',
+              ),
+              trailing: _selectedEndDateTime != null
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.edit),
+                        IconButton(
+                          icon: const Icon(Icons.clear, size: 20),
+                          onPressed: () {
+                            setState(() {
+                              _selectedEndDateTime = null;
+                            });
+                          },
+                        ),
+                      ],
+                    )
+                  : const Icon(Icons.edit),
+              onTap: () => _selectDateTime(isStartTime: false),
+            ),
+          ),
+          if (_selectedEndDateTime != null) ...[
+            const SizedBox(height: 12),
+            Card(
+              color: Colors.blue.shade50,
+              child: ListTile(
+                leading: const Icon(Icons.timer, color: Colors.blue),
+                title: const Text('Sleep Duration'),
+                subtitle: Text(
+                  _formatDuration(_selectedEndDateTime!.difference(_selectedDateTime).inMinutes),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
         ];
 
       case ActivityType.feed:
@@ -230,13 +325,18 @@ class _AddActivityScreenState extends State<AddActivityScreen> {
   }
 
   void _saveActivity() {
+    // Calculate duration for sleep if end time is set
+    int? durationMinutes;
+    if (widget.activityType == ActivityType.sleep && _selectedEndDateTime != null) {
+      durationMinutes = _selectedEndDateTime!.difference(_selectedDateTime).inMinutes;
+    }
+
     final activity = Activity(
       id: widget.activity?.id,
       type: widget.activityType,
       timestamp: _selectedDateTime,
-      durationMinutes: _durationController.text.isNotEmpty
-          ? int.tryParse(_durationController.text)
-          : null,
+      durationMinutes: durationMinutes,
+      sleepEndTime: widget.activityType == ActivityType.sleep ? _selectedEndDateTime : null,
       feedType: widget.activityType == ActivityType.feed ? _selectedFeedType : null,
       feedAmount: _feedAmountController.text.isNotEmpty
           ? double.tryParse(_feedAmountController.text)

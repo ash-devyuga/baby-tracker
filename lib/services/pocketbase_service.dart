@@ -159,6 +159,7 @@ class PocketBaseService {
         'type': activity.type.toString(),
         'timestamp': activity.timestamp.toIso8601String(),
         'duration_minutes': activity.durationMinutes,
+        'sleep_end_time': activity.sleepEndTime?.toIso8601String(),
         'notes': activity.notes,
         'feed_type': activity.feedType,
         'feed_amount': activity.feedAmount,

@@ -133,7 +133,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
-        backgroundColor: Colors.pink[300],
+        backgroundColor: Colors.blue[300],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
@@ -146,7 +146,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.key, color: Colors.pink[300]),
+                      Icon(Icons.key, color: Colors.blue[300]),
                       const SizedBox(width: 8),
                       const Text(
                         'Baby Profile ID',
@@ -210,7 +210,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.person_add, color: Colors.pink[300]),
+                      Icon(Icons.person_add, color: Colors.blue[300]),
                       const SizedBox(width: 8),
                       const Text(
                         'Add Partner',
@@ -238,7 +238,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _addPartner,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.pink[300],
+                        backgroundColor: Colors.blue[300],
                         foregroundColor: Colors.white,
                       ),
                       child: _isLoading
@@ -261,7 +261,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 16),
           Card(
             child: ListTile(
-              leading: Icon(Icons.sync, color: Colors.pink[300]),
+              leading: Icon(Icons.sync, color: Colors.blue[300]),
               title: const Text('Sync Status'),
               subtitle: Text(
                 PocketBaseService.instance.isAuthenticated

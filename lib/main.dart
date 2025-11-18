@@ -21,9 +21,9 @@ class BabyTrackerApp extends StatelessWidget {
         title: 'Baby Care Tracker',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          primarySwatch: Colors.pink,
+          primarySwatch: Colors.blue,
           colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.pink,
+            seedColor: Colors.blue,
             brightness: Brightness.light,
           ),
           useMaterial3: true,
@@ -91,7 +91,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.pink[300],
+      backgroundColor: Colors.blue[300],
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

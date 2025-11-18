@@ -20,7 +20,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -33,6 +33,7 @@ class DatabaseService {
         type TEXT NOT NULL,
         timestamp TEXT NOT NULL,
         durationMinutes INTEGER,
+        sleepEndTime TEXT,
         notes TEXT,
         feedType TEXT,
         feedAmount REAL,
@@ -46,6 +47,10 @@ class DatabaseService {
     if (oldVersion < 2) {
       // Add cloudId column for PocketBase sync
       await db.execute('ALTER TABLE activities ADD COLUMN cloudId TEXT');
+    }
+    if (oldVersion < 3) {
+      // Add sleepEndTime column for sleep tracking
+      await db.execute('ALTER TABLE activities ADD COLUMN sleepEndTime TEXT');
     }
   }
 

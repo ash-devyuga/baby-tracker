@@ -101,7 +101,7 @@ class _BabyProfileScreenState extends State<BabyProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Baby Profile Setup'),
-        backgroundColor: Colors.pink[300],
+        backgroundColor: Colors.blue[300],
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -123,7 +123,7 @@ class _BabyProfileScreenState extends State<BabyProfileScreen> {
               Icon(
                 Icons.child_care,
                 size: 80,
-                color: Colors.pink[300],
+                color: Colors.blue[300],
               ),
               const SizedBox(height: 16),
               const Text(
@@ -208,7 +208,7 @@ class _BabyProfileScreenState extends State<BabyProfileScreen> {
           ElevatedButton(
             onPressed: _isLoading ? null : _createProfile,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.pink[300],
+              backgroundColor: Colors.blue[300],
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
@@ -254,7 +254,7 @@ class _BabyProfileScreenState extends State<BabyProfileScreen> {
         ElevatedButton(
           onPressed: _isLoading ? null : _joinProfile,
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.pink[300],
+            backgroundColor: Colors.blue[300],
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 16),
           ),

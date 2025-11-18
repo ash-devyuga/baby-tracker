@@ -94,7 +94,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   Icon(
                     Icons.baby_changing_station,
                     size: 80,
-                    color: Colors.pink[300],
+                    color: Colors.blue[300],
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -102,7 +102,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: Colors.pink[300],
+                      color: Colors.blue[300],
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -173,7 +173,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   ElevatedButton(
                     onPressed: _isLoading ? null : _submit,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.pink[300],
+                      backgroundColor: Colors.blue[300],
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
@@ -202,7 +202,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       _isLogin
                           ? 'Don\'t have an account? Register'
                           : 'Already have an account? Login',
-                      style: TextStyle(color: Colors.pink[300]),
+                      style: TextStyle(color: Colors.blue[300]),
                     ),
                   ),
                 ],

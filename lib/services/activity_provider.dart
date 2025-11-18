@@ -131,12 +131,20 @@ class ActivityProvider extends ChangeNotifier {
     final sleepActivities = getTodayActivities(ActivityType.sleep);
     return sleepActivities.fold(
       0,
-      (sum, activity) => sum + (activity.durationMinutes ?? 0),
+      (sum, activity) => sum + (activity.calculatedDuration ?? 0),
     );
   }
 
   int getTotalFeeds() {
     return getTodayActivities(ActivityType.feed).length;
+  }
+
+  double getTotalFeedVolume() {
+    final feedActivities = getTodayActivities(ActivityType.feed);
+    return feedActivities.fold(
+      0.0,
+      (sum, activity) => sum + (activity.feedAmount ?? 0),
+    );
   }
 
   int getTotalDiapers() {

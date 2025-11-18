@@ -7,8 +7,9 @@ enum ActivityType {
 class Activity {
   final int? id;
   final ActivityType type;
-  final DateTime timestamp;
-  final int? durationMinutes; // For sleep
+  final DateTime timestamp; // For sleep: start time, For others: activity time
+  final int? durationMinutes; // For sleep (calculated from start/end or manually entered)
+  final DateTime? sleepEndTime; // For sleep: end time (optional, can be updated later)
   final String? notes;
   final String? feedType; // bottle, breast, solid
   final double? feedAmount; // in ml or oz
@@ -20,6 +21,7 @@ class Activity {
     required this.type,
     required this.timestamp,
     this.durationMinutes,
+    this.sleepEndTime,
     this.notes,
     this.feedType,
     this.feedAmount,
@@ -27,12 +29,21 @@ class Activity {
     this.cloudId,
   });
 
+  // Calculate duration from start and end times if both are available
+  int? get calculatedDuration {
+    if (type == ActivityType.sleep && sleepEndTime != null) {
+      return sleepEndTime!.difference(timestamp).inMinutes;
+    }
+    return durationMinutes;
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'type': type.toString(),
       'timestamp': timestamp.toIso8601String(),
       'durationMinutes': durationMinutes,
+      'sleepEndTime': sleepEndTime?.toIso8601String(),
       'notes': notes,
       'feedType': feedType,
       'feedAmount': feedAmount,
@@ -49,6 +60,9 @@ class Activity {
       ),
       timestamp: DateTime.parse(map['timestamp'] as String),
       durationMinutes: map['durationMinutes'] as int?,
+      sleepEndTime: map['sleepEndTime'] != null
+          ? DateTime.parse(map['sleepEndTime'] as String)
+          : null,
       notes: map['notes'] as String?,
       feedType: map['feedType'] as String?,
       feedAmount: map['feedAmount'] as double?,
@@ -66,6 +80,9 @@ class Activity {
       ),
       timestamp: DateTime.parse(cloudData['timestamp'] as String),
       durationMinutes: cloudData['duration_minutes'] as int?,
+      sleepEndTime: cloudData['sleep_end_time'] != null
+          ? DateTime.parse(cloudData['sleep_end_time'] as String)
+          : null,
       notes: cloudData['notes'] as String?,
       feedType: cloudData['feed_type'] as String?,
       feedAmount: cloudData['feed_amount'] != null

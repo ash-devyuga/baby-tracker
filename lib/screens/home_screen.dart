@@ -30,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Baby Care Tracker'),
-        backgroundColor: Colors.pink[300],
+        backgroundColor: Colors.blue[300],
         actions: [
           IconButton(
             icon: const Icon(Icons.history),
@@ -144,7 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 _buildSummaryItem(
                   'Feeds',
-                  '${provider.getTotalFeeds()}',
+                  '${provider.getTotalFeeds()}\n${provider.getTotalFeedVolume().toInt()} ml',
                   Icons.restaurant,
                   Colors.orange,
                 ),

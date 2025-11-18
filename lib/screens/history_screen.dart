@@ -33,7 +33,7 @@ class _HistoryScreenState extends State<HistoryScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Activity History'),
-        backgroundColor: Colors.pink[300],
+        backgroundColor: Colors.blue[300],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -189,12 +189,18 @@ class _HistoryScreenState extends State<HistoryScreen>
   String _getActivityTitle(Activity activity) {
     switch (activity.type) {
       case ActivityType.sleep:
-        final duration = activity.durationMinutes ?? 0;
+        final duration = activity.calculatedDuration ?? 0;
         final hours = duration ~/ 60;
         final minutes = duration % 60;
-        return hours > 0
-            ? 'Sleep - ${hours}h ${minutes}m'
-            : 'Sleep - ${minutes}m';
+        final durationStr = hours > 0 ? '${hours}h ${minutes}m' : '${minutes}m';
+
+        if (activity.sleepEndTime != null) {
+          final startTime = DateFormat('HH:mm').format(activity.timestamp);
+          final endTime = DateFormat('HH:mm').format(activity.sleepEndTime!);
+          return 'Sleep - $durationStr ($startTime → $endTime)';
+        } else {
+          return 'Sleep - Started (no end time yet)';
+        }
 
       case ActivityType.feed:
         final feedInfo = StringBuffer(activity.feedType ?? 'Feed');
