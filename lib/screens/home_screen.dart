@@ -20,8 +20,8 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<ActivityProvider>();
+      // Cloud-first: loadActivities() now loads directly from cloud
       provider.loadActivities();
-      provider.syncFromCloud();
       provider.initializeRealtimeSync();
     });
   }
@@ -75,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (context, provider, child) {
           return RefreshIndicator(
             onRefresh: () async {
-              await provider.syncFromCloud();
+              // Cloud-first: Just reload from cloud
               await provider.loadActivities();
             },
             child: SingleChildScrollView(

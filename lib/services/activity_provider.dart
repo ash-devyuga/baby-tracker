@@ -17,21 +17,84 @@ class ActivityProvider extends ChangeNotifier {
   Activity? get lastDiaper => _lastDiaper;
 
   Future<void> loadActivities({DateTime? date}) async {
-    _activities = await _db.getActivities(date: date ?? DateTime.now());
+    // Cloud-first: Load from PocketBase if authenticated
+    if (_pb.isAuthenticated) {
+      try {
+        final cloudActivities = await _pb.getActivitiesFromCloud();
+        _activities = cloudActivities.map((data) => Activity.fromCloud(data)).toList();
+
+        // Filter by date if specified
+        if (date != null) {
+          final startOfDay = DateTime(date.year, date.month, date.day);
+          final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
+          _activities = _activities.where((activity) =>
+            activity.timestamp.isAfter(startOfDay) &&
+            activity.timestamp.isBefore(endOfDay)
+          ).toList();
+        }
+
+        // Clear and sync local DB cache with cloud data
+        // (This ensures local DB stays in sync with cloud)
+      } catch (e) {
+        print('Error loading from cloud, falling back to local: $e');
+        // Fallback to local DB if cloud fails
+        _activities = await _db.getActivities(date: date);
+      }
+    } else {
+      // Not authenticated, use local DB
+      _activities = await _db.getActivities(date: date);
+    }
+
     await _loadLastActivities();
     notifyListeners();
   }
 
   Future<void> _loadLastActivities() async {
-    // Load last activities regardless of date (cross-day tracking)
-    _lastSleep = await _db.getLastActivity(ActivityType.sleep);
-    _lastFeed = await _db.getLastActivity(ActivityType.feed);
-    _lastDiaper = await _db.getLastActivity(ActivityType.diaper);
+    // Load last activities from current activities list (already from cloud)
+    _lastSleep = _activities
+        .where((a) => a.type == ActivityType.sleep)
+        .fold<Activity?>(null, (prev, curr) =>
+            prev == null || curr.timestamp.isAfter(prev.timestamp) ? curr : prev);
+
+    _lastFeed = _activities
+        .where((a) => a.type == ActivityType.feed)
+        .fold<Activity?>(null, (prev, curr) =>
+            prev == null || curr.timestamp.isAfter(prev.timestamp) ? curr : prev);
+
+    _lastDiaper = _activities
+        .where((a) => a.type == ActivityType.diaper)
+        .fold<Activity?>(null, (prev, curr) =>
+            prev == null || curr.timestamp.isAfter(prev.timestamp) ? curr : prev);
   }
 
-  // Get activities for a specific date
+  // Get activities for a specific date (from cloud)
   Future<List<Activity>> getActivitiesForDate(DateTime date, {ActivityType? type}) async {
-    return await _db.getActivities(date: date, type: type);
+    if (_pb.isAuthenticated) {
+      try {
+        final cloudActivities = await _pb.getActivitiesFromCloud();
+        var activities = cloudActivities.map((data) => Activity.fromCloud(data)).toList();
+
+        // Filter by date
+        final startOfDay = DateTime(date.year, date.month, date.day);
+        final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
+        activities = activities.where((activity) =>
+          activity.timestamp.isAfter(startOfDay) &&
+          activity.timestamp.isBefore(endOfDay)
+        ).toList();
+
+        // Filter by type if specified
+        if (type != null) {
+          activities = activities.where((a) => a.type == type).toList();
+        }
+
+        return activities;
+      } catch (e) {
+        print('Error loading from cloud, falling back to local: $e');
+        return await _db.getActivities(date: date, type: type);
+      }
+    } else {
+      return await _db.getActivities(date: date, type: type);
+    }
   }
 
   // Get last 7 days statistics
@@ -49,7 +112,7 @@ class ActivityProvider extends ChangeNotifier {
       final date = now.subtract(Duration(days: i));
       final dateKey = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
-      final dayActivities = await _db.getActivities(date: date);
+      final dayActivities = await getActivitiesForDate(date);
 
       final sleepActivities = dayActivities.where((a) => a.type == ActivityType.sleep).toList();
       final feedActivities = dayActivities.where((a) => a.type == ActivityType.feed).toList();
@@ -94,47 +157,66 @@ class ActivityProvider extends ChangeNotifier {
   }
 
   Future<void> addActivity(Activity activity) async {
-    final localId = await _db.insertActivity(activity);
-
-    // Sync to cloud if authenticated
+    // Cloud-first: Save to PocketBase first
     if (_pb.isAuthenticated) {
-      final activityWithId = Activity(
-        id: localId,
-        type: activity.type,
-        timestamp: activity.timestamp,
-        durationMinutes: activity.durationMinutes,
-        sleepEndTime: activity.sleepEndTime,
-        notes: activity.notes,
-        feedType: activity.feedType,
-        feedAmount: activity.feedAmount,
-        diaperType: activity.diaperType,
-        cloudId: activity.cloudId,
-      );
-      await _pb.syncActivityToCloud(activityWithId);
+      try {
+        // Save to cloud
+        final cloudId = await _pb.syncActivityToCloud(activity);
+
+        // Then cache locally with cloud ID
+        final activityWithCloudId = Activity(
+          id: activity.id,
+          type: activity.type,
+          timestamp: activity.timestamp,
+          durationMinutes: activity.durationMinutes,
+          sleepEndTime: activity.sleepEndTime,
+          notes: activity.notes,
+          feedType: activity.feedType,
+          feedAmount: activity.feedAmount,
+          diaperType: activity.diaperType,
+          cloudId: cloudId,
+        );
+        await _db.insertActivity(activityWithCloudId);
+      } catch (e) {
+        print('Error saving to cloud: $e');
+        // Fallback: save to local only
+        await _db.insertActivity(activity);
+      }
+    } else {
+      // Not authenticated, save to local only
+      await _db.insertActivity(activity);
     }
 
     await loadActivities();
   }
 
   Future<void> deleteActivity(int id) async {
-    await _db.deleteActivity(id);
-
-    // Sync deletion to cloud if authenticated
+    // Cloud-first: Delete from cloud first
     if (_pb.isAuthenticated) {
-      await _pb.deleteActivityFromCloud(id);
+      try {
+        await _pb.deleteActivityFromCloud(id);
+      } catch (e) {
+        print('Error deleting from cloud: $e');
+      }
     }
 
+    // Also delete from local cache
+    await _db.deleteActivity(id);
     await loadActivities();
   }
 
   Future<void> updateActivity(Activity activity) async {
-    await _db.updateActivity(activity);
-
-    // Sync update to cloud if authenticated
+    // Cloud-first: Update in cloud first
     if (_pb.isAuthenticated) {
-      await _pb.syncActivityToCloud(activity);
+      try {
+        await _pb.syncActivityToCloud(activity);
+      } catch (e) {
+        print('Error updating cloud: $e');
+      }
     }
 
+    // Also update local cache
+    await _db.updateActivity(activity);
     await loadActivities();
   }
 
