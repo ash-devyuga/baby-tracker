@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart';
 import '../models/activity.dart';
 import 'database_service.dart';
+import 'pocketbase_service.dart';
 
 class ActivityProvider extends ChangeNotifier {
   final DatabaseService _db = DatabaseService.instance;
+  final PocketBaseService _pb = PocketBaseService.instance;
   List<Activity> _activities = [];
   Activity? _lastSleep;
   Activity? _lastFeed;
@@ -27,18 +29,91 @@ class ActivityProvider extends ChangeNotifier {
   }
 
   Future<void> addActivity(Activity activity) async {
-    await _db.insertActivity(activity);
+    final localId = await _db.insertActivity(activity);
+
+    // Sync to cloud if authenticated
+    if (_pb.isAuthenticated) {
+      final activityWithId = Activity(
+        id: localId,
+        type: activity.type,
+        timestamp: activity.timestamp,
+        durationMinutes: activity.durationMinutes,
+        notes: activity.notes,
+        feedType: activity.feedType,
+        feedAmount: activity.feedAmount,
+        diaperType: activity.diaperType,
+        cloudId: activity.cloudId,
+      );
+      await _pb.syncActivityToCloud(activityWithId);
+    }
+
     await loadActivities();
   }
 
   Future<void> deleteActivity(int id) async {
     await _db.deleteActivity(id);
+
+    // Sync deletion to cloud if authenticated
+    if (_pb.isAuthenticated) {
+      await _pb.deleteActivityFromCloud(id);
+    }
+
     await loadActivities();
   }
 
   Future<void> updateActivity(Activity activity) async {
     await _db.updateActivity(activity);
+
+    // Sync update to cloud if authenticated
+    if (_pb.isAuthenticated) {
+      await _pb.syncActivityToCloud(activity);
+    }
+
     await loadActivities();
+  }
+
+  // Sync all activities from cloud
+  Future<void> syncFromCloud() async {
+    if (!_pb.isAuthenticated) return;
+
+    final cloudActivities = await _pb.getActivitiesFromCloud();
+
+    for (final cloudData in cloudActivities) {
+      final activity = Activity.fromCloud(cloudData);
+
+      // Check if activity already exists locally
+      if (activity.id != null) {
+        final existing = await _db.getActivities();
+        final found = existing.any((a) => a.id == activity.id);
+
+        if (found) {
+          await _db.updateActivity(activity);
+        } else {
+          await _db.insertActivity(activity);
+        }
+      } else {
+        await _db.insertActivity(activity);
+      }
+    }
+
+    await loadActivities();
+  }
+
+  // Initialize real-time sync
+  void initializeRealtimeSync() {
+    if (!_pb.isAuthenticated) return;
+
+    _pb.subscribeToActivities((cloudData) async {
+      final activity = Activity.fromCloud(cloudData);
+      await loadActivities();
+    });
+  }
+
+  // Cleanup when provider is disposed
+  @override
+  void dispose() {
+    _pb.unsubscribeFromActivities();
+    super.dispose();
   }
 
   List<Activity> getTodayActivities(ActivityType type) {

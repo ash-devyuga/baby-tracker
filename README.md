@@ -8,7 +8,11 @@ A Flutter mobile application to track your baby's sleep, feeding, and diaper cha
 - **Time Since Last Activity**: See how long it's been since the last feed, diaper change, or sleep
 - **Daily Summary**: View total sleep hours and number of feeds/diaper changes for the day
 - **Activity History**: Browse and manage all recorded activities with edit/delete options
-- **Local Storage**: All data is stored locally using SQLite for privacy and offline access
+- **Edit Activity Times**: Change the date and time of any recorded activity
+- **Cloud Sync with PocketBase**: Sync data between both parents in real-time (100% FREE!)
+- **Offline Support**: Works offline with local SQLite storage, syncs when back online
+- **Multi-Parent Access**: Both parents can track and view activities on separate devices
+- **Real-time Updates**: See changes instantly when your partner adds an activity
 
 ## Screenshots
 
@@ -35,6 +39,7 @@ A Flutter mobile application to track your baby's sleep, feeding, and diaper cha
 - Dart SDK
 - Android Studio / Xcode for mobile development
 - A physical device or emulator
+- (Optional) PocketBase for cloud sync - see [POCKETBASE_SETUP.md](POCKETBASE_SETUP.md)
 
 ### Setup Instructions
 
@@ -48,7 +53,12 @@ A Flutter mobile application to track your baby's sleep, feeding, and diaper cha
    flutter pub get
    ```
 
-3. **Run the app**
+3. **(Optional) Set up PocketBase for cloud sync**
+   - Follow the detailed guide in [POCKETBASE_SETUP.md](POCKETBASE_SETUP.md)
+   - 100% FREE - no monthly costs!
+   - Enables real-time sync between both parents
+
+4. **Run the app**
    ```bash
    # For Android
    flutter run
@@ -61,7 +71,7 @@ A Flutter mobile application to track your baby's sleep, feeding, and diaper cha
    flutter run -d <device-id>
    ```
 
-4. **Build for release**
+5. **Build for release**
    ```bash
    # Android APK
    flutter build apk --release
@@ -91,10 +101,13 @@ baby_tracker_app/
 
 ## Dependencies
 
-- **sqflite**: Local SQLite database
+- **sqflite**: Local SQLite database for offline storage
 - **path**: File path manipulation
 - **intl**: Date and time formatting
 - **provider**: State management
+- **pocketbase**: Real-time cloud sync backend
+- **shared_preferences**: Local settings storage
+- **http**: Network requests
 
 ## Usage
 
@@ -115,6 +128,33 @@ baby_tracker_app/
 2. Switch between tabs to view different activity types
 3. Tap the menu icon on any entry to edit or delete
 
+### Editing Activity Times
+
+1. Go to History screen
+2. Tap the menu icon on any activity
+3. Select "Edit"
+4. Tap on the date/time field
+5. Choose new date and time
+6. Tap "Update"
+
+### Syncing Between Parents
+
+1. **First Parent**:
+   - Set up PocketBase (see [POCKETBASE_SETUP.md](POCKETBASE_SETUP.md))
+   - Create an account in the app
+   - Create a baby profile
+   - Go to Settings and copy the Profile ID
+   - Share Profile ID with partner
+
+2. **Second Parent**:
+   - Create an account in the app
+   - Select "Join Existing Profile"
+   - Paste the Profile ID
+   - Start tracking!
+
+3. **Pull to refresh** on the home screen to manually sync
+4. **Real-time updates** happen automatically
+
 ### Dashboard Information
 
 - **Today's Summary**: Shows total sleep hours, feeds, and diaper changes for the current day
@@ -122,17 +162,21 @@ baby_tracker_app/
 
 ## Data Storage
 
-All data is stored locally on your device using SQLite. No data is sent to external servers, ensuring complete privacy.
+- **Local Storage**: All data is stored locally using SQLite for offline access and privacy
+- **Cloud Sync** (Optional): When PocketBase is configured, data syncs between both parents' devices in real-time
+- **Offline First**: App works perfectly offline; syncs automatically when connection is restored
 
 ## Future Enhancements
 
 Potential features for future versions:
+- ~~Cloud sync between parents~~ ✅ **IMPLEMENTED** with PocketBase
+- ~~Edit activity times~~ ✅ **IMPLEMENTED**
 - Weekly/monthly statistics and charts
 - Export data to CSV or PDF
-- Multiple baby profiles
+- Multiple baby profiles (single account)
 - Reminders and notifications
 - Dark mode
-- Data backup and restore
+- Photo attachments for activities
 
 ## Troubleshooting
 

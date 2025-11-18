@@ -4,6 +4,7 @@ import '../services/activity_provider.dart';
 import '../models/activity.dart';
 import 'add_activity_screen.dart';
 import 'history_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -17,7 +18,10 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ActivityProvider>().loadActivities();
+      final provider = context.read<ActivityProvider>();
+      provider.loadActivities();
+      provider.syncFromCloud();
+      provider.initializeRealtimeSync();
     });
   }
 
@@ -39,12 +43,26 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsScreen(),
+                ),
+              );
+            },
+          ),
         ],
       ),
       body: Consumer<ActivityProvider>(
         builder: (context, provider, child) {
           return RefreshIndicator(
-            onRefresh: () => provider.loadActivities(),
+            onRefresh: () async {
+              await provider.syncFromCloud();
+              await provider.loadActivities();
+            },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16.0),

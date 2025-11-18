@@ -20,8 +20,9 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: _upgradeDB,
     );
   }
 
@@ -35,9 +36,17 @@ class DatabaseService {
         notes TEXT,
         feedType TEXT,
         feedAmount REAL,
-        diaperType TEXT
+        diaperType TEXT,
+        cloudId TEXT
       )
     ''');
+  }
+
+  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // Add cloudId column for PocketBase sync
+      await db.execute('ALTER TABLE activities ADD COLUMN cloudId TEXT');
+    }
   }
 
   Future<int> insertActivity(Activity activity) async {
