@@ -23,9 +23,74 @@ class ActivityProvider extends ChangeNotifier {
   }
 
   Future<void> _loadLastActivities() async {
+    // Load last activities regardless of date (cross-day tracking)
     _lastSleep = await _db.getLastActivity(ActivityType.sleep);
     _lastFeed = await _db.getLastActivity(ActivityType.feed);
     _lastDiaper = await _db.getLastActivity(ActivityType.diaper);
+  }
+
+  // Get activities for a specific date
+  Future<List<Activity>> getActivitiesForDate(DateTime date, {ActivityType? type}) async {
+    return await _db.getActivities(date: date, type: type);
+  }
+
+  // Get last 7 days statistics
+  Future<Map<String, dynamic>> getWeeklyStats() async {
+    final now = DateTime.now();
+    final weekStats = <String, Map<String, dynamic>>{};
+
+    int totalSleep = 0;
+    int totalFeeds = 0;
+    double totalFeedVolume = 0;
+    int totalDiapers = 0;
+    int daysWithData = 0;
+
+    for (int i = 0; i < 7; i++) {
+      final date = now.subtract(Duration(days: i));
+      final dateKey = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+      final dayActivities = await _db.getActivities(date: date);
+
+      final sleepActivities = dayActivities.where((a) => a.type == ActivityType.sleep).toList();
+      final feedActivities = dayActivities.where((a) => a.type == ActivityType.feed).toList();
+      final diaperActivities = dayActivities.where((a) => a.type == ActivityType.diaper).toList();
+
+      final daySleepMinutes = sleepActivities.fold(0, (sum, a) => sum + (a.calculatedDuration ?? 0));
+      final dayFeedCount = feedActivities.length;
+      final dayFeedVolume = feedActivities.fold(0.0, (sum, a) => sum + (a.feedAmount ?? 0));
+      final dayDiaperCount = diaperActivities.length;
+
+      if (dayActivities.isNotEmpty) daysWithData++;
+
+      totalSleep += daySleepMinutes;
+      totalFeeds += dayFeedCount;
+      totalFeedVolume += dayFeedVolume;
+      totalDiapers += dayDiaperCount;
+
+      weekStats[dateKey] = {
+        'date': date,
+        'sleepMinutes': daySleepMinutes,
+        'feeds': dayFeedCount,
+        'feedVolume': dayFeedVolume,
+        'diapers': dayDiaperCount,
+      };
+    }
+
+    return {
+      'dailyStats': weekStats,
+      'averages': {
+        'sleepMinutes': daysWithData > 0 ? totalSleep ~/ daysWithData : 0,
+        'feeds': daysWithData > 0 ? totalFeeds / daysWithData : 0,
+        'feedVolume': daysWithData > 0 ? totalFeedVolume / daysWithData : 0,
+        'diapers': daysWithData > 0 ? totalDiapers / daysWithData : 0,
+      },
+      'totals': {
+        'sleepMinutes': totalSleep,
+        'feeds': totalFeeds,
+        'feedVolume': totalFeedVolume,
+        'diapers': totalDiapers,
+      }
+    };
   }
 
   Future<void> addActivity(Activity activity) async {

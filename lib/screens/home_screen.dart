@@ -5,6 +5,7 @@ import '../models/activity.dart';
 import 'add_activity_screen.dart';
 import 'history_screen.dart';
 import 'settings_screen.dart';
+import 'statistics_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -33,7 +34,20 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.blue[300],
         actions: [
           IconButton(
+            icon: const Icon(Icons.analytics),
+            tooltip: 'Statistics',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const StatisticsScreen(),
+                ),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.history),
+            tooltip: 'History',
             onPressed: () {
               Navigator.push(
                 context,
@@ -45,6 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.settings),
+            tooltip: 'Settings',
             onPressed: () {
               Navigator.push(
                 context,
