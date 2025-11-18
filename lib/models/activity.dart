@@ -73,16 +73,24 @@ class Activity {
 
   // Create Activity from PocketBase cloud data
   factory Activity.fromCloud(Map<String, dynamic> cloudData) {
+    // Helper to safely parse dates (handles null and empty strings)
+    DateTime? parseDate(dynamic value) {
+      if (value == null || value == '') return null;
+      try {
+        return DateTime.parse(value.toString());
+      } catch (e) {
+        return null;
+      }
+    }
+
     return Activity(
       id: cloudData['local_id'] != null ? int.tryParse(cloudData['local_id'].toString()) : null,
       type: ActivityType.values.firstWhere(
         (e) => e.toString() == cloudData['type'],
       ),
-      timestamp: DateTime.parse(cloudData['timestamp'] as String),
+      timestamp: parseDate(cloudData['timestamp']) ?? DateTime.now(),
       durationMinutes: cloudData['duration_minutes'] as int?,
-      sleepEndTime: cloudData['sleep_end_time'] != null
-          ? DateTime.parse(cloudData['sleep_end_time'] as String)
-          : null,
+      sleepEndTime: parseDate(cloudData['sleep_end_time']),
       notes: cloudData['notes'] as String?,
       feedType: cloudData['feed_type'] as String?,
       feedAmount: cloudData['feed_amount'] != null
