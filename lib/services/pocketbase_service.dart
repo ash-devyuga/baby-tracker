@@ -9,7 +9,7 @@ class PocketBaseService {
   // Replace this URL with your PocketBase server URL
   // For local development: 'http://10.0.2.2:8090' (Android emulator)
   // For production: 'https://your-pocketbase-domain.com'
-  static const String pocketBaseUrl = 'https://baby-tracker-pb.fly.dev';
+  static const String pocketBaseUrl = 'https://baby-tracker-pb-ashwanisingla-7054.fly.dev';
 
   PocketBaseService._init() {
     pb = PocketBase(pocketBaseUrl);
